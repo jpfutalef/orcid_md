@@ -3,6 +3,7 @@ import requests
 from pathlib import Path
 from rich.progress import Progress
 import json
+import markdown
 
 # %% ORCID data
 orcid_id = "0000-0002-7108-637X"
@@ -11,6 +12,8 @@ ORCID_RECORD_API = "https://pub.orcid.org/v3.0/"
 json_loc = f"./ORCID-{orcid_id}.json"
 xlsx_loc = f"./ORCID-{orcid_id}.xlsx"
 md_loc = f"./ORCID-{orcid_id}.md"
+html_loc = f"./ORCID-{orcid_id}.html"
+
 # %% Retrieve ORCID data
 print("Retrieving ORCID entries from API...")
 
@@ -203,5 +206,11 @@ mds = "\n".join(md)
 with open(md_loc, "w", encoding='utf-8') as f:
     f.write(mds)
 print(f"    Saved to {md_loc}")
+# %% Convert markdown to HTML
+print("Converting markdown to HTML...")
+
+html = markdown.markdown(mds)
+with open(html_loc, "w", encoding='utf-8') as f:
+    f.write(html)
 
 print("Finished!")

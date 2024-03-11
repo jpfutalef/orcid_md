@@ -1,6 +1,6 @@
 pandas
 rich
 requests
-Markdown
+markdown
 pybliometrics
 openpyxl
