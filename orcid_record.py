@@ -206,11 +206,14 @@ mds = "\n".join(md)
 with open(md_loc, "w", encoding='utf-8') as f:
     f.write(mds)
 print(f"    Saved to {md_loc}")
+
 # %% Convert markdown to HTML
 print("Converting markdown to HTML...")
 
 html = markdown.markdown(mds)
 with open(html_loc, "w", encoding='utf-8') as f:
     f.write(html)
+
+print(f"    Saved to {html_loc}")
 
 print("Finished!")
