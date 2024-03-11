@@ -1,1 +1,6 @@
 pandas
+rich
+requests
+Markdown
+pybliometrics
+openpyxl

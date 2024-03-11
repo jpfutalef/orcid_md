@@ -1,31 +1,19 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: py:light
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.14.1
-#   kernelspec:
-#     display_name: Python 3 (ipykernel)
-#     language: python
-#     name: python3
-# ---
-
-# +
 import pandas as pd
 import requests
-from IPython.display import Markdown, JSON
 from pathlib import Path
 from rich import progress
+import json
 
-# My ORCID
+#%% ORCID data
 orcid_id = "0000-0002-7108-637X"
 ORCID_RECORD_API = "https://pub.orcid.org/v3.0/"
 
-# Download all of my ORCID records
+json_loc = f"./ORCID-{orcid_id}.json"
+xlsx_loc = f"./ORCID-{orcid_id}.xlsx"
+md_loc = f"./ORCID-{orcid_id}.md"
+#%% Retrieve ORCID data
 print("Retrieving ORCID entries from API...")
+
 response = requests.get(
     url=requests.utils.requote_uri(ORCID_RECORD_API + orcid_id),
     headers={"Accept": "application/json"},
@@ -33,20 +21,19 @@ response = requests.get(
 response.raise_for_status()
 orcid_record = response.json()
 
-# +
-# Just to visualize in a notebook if need be
-# JSON(orcid_record)
+# Save the record to a file
+with open(json_loc, "w") as f:
+    json.dump(orcid_record, f)
 
-# +
+# Message
+person_name_dict = orcid_record["person"]["name"]
+given_name = person_name_dict["given-names"]["value"]
+family_name = person_name_dict["family-name"]["value"]
+print(f"     Retrieved ORCID record for {given_name} {family_name}...")
+print(f"     Found {len(orcid_record['activities-summary']['works']['group'])} works")
+print(f"     Saved to {json_loc}")
 
-###
-# Resolve my DOIs from ORCID as references
-# Shamelessly copied from:
-# https://gist.github.com/brews/8d3b3ede15d120a86a6bd6fc43859c5e
-import requests
-import json
-
-
+#%% A function to fetch metadata for a given DOI
 def fetchmeta(doi, fmt="reference", **kwargs):
     """Fetch metadata for a given DOI.
 
@@ -100,23 +87,43 @@ def fetchmeta(doi, fmt="reference", **kwargs):
             out = r.text
     return out
 
+#%% Check if the xls file exists
+print("Checking if the xlsx file exists...")
 
-# -
+if Path(xlsx_loc).exists():
+    print(f"    FOUND! {xlsx_loc} will be used to check if DOI is already in the list.")
+    df = pd.read_excel(xlsx_loc)
+    data = df.to_dict(orient="index")
 
-# Extract metadata for each entry
-df = []
+else:
+    print(f"    NOT FOUND. New file will be created at {xlsx_loc}")
+    data = {}
+
+#%% Obtain each work's metadata using the DOI
+print("Fetching reference data...")
 for iwork in progress.track(
     orcid_record["activities-summary"]["works"]["group"], "Fetching reference data..."
 ):
+    # The summary of the work
+    isummary = iwork["work-summary"][0]
+
+    # Extract the DOI
+    doi = None
+    for ii in isummary["external-ids"]["external-id"]:
+        if ii["external-id-type"] == "doi":
+            doi = ii["external-id-value"]
+            break
+
+    # If the DOI is not found, skip
+    if doi is None:
+        continue
+
+    # If the DOI is already in the list, skip
+    if doi in data:
+        continue
+
+    # Extract the data
     try:
-        isummary = iwork["work-summary"][0]
-
-        # Extract the DOI
-        for ii in isummary["external-ids"]["external-id"]:
-            if ii["external-id-type"] == "doi":
-                doi = ii["external-id-value"]
-                break
-
         meta = fetchmeta(doi, fmt="dict")
         doi_url = meta["URL"]
         title = meta["title"]
@@ -135,19 +142,45 @@ for iwork in progress.track(
                 autht.append(f"[{name}]({author['ORCID']})")
             else:
                 autht.append(name)
-        autht = ", ".join(autht)
+        autht = "; ".join(autht)
 
         journal = meta["publisher"]
 
         url_doi = url.split("//", 1)[-1]
         reference = f"{autht} ({year}). **{title}**. {journal}. [{url_doi}]({url})"
-        df.append({"year": year, "reference": reference})
+
+        # Setup this entry
+        work_data = {
+            "title": title,
+            "authors": autht,
+            "year": year,
+            "journal": journal,
+            "citation_count": references_count,
+            "url_doi": url_doi,
+            "url": url,
+            "reference": reference
+        }
+
     except KeyError as e:
         print(f"Failed to process DOI: {doi}")
-        print(e)
-df = pd.DataFrame(df)
 
-# Convert into a markdown string
+        work_data = {}
+
+    # Add to the data
+    data[doi] = work_data
+
+print("Finished fetching reference data...")
+
+#%% Convert the data into a DataFrame
+print("Converting data to a DataFrame...")
+df = pd.DataFrame(data).T
+
+# Save the data to an xlsx file
+df.to_excel(xlsx_loc, index=False)
+print(f"    Saved to {xlsx_loc}")
+
+#%% Convert into a markdown string
+print("Converting data to markdown string...")
 md = []
 for year, items in df.groupby("year", sort=False):
     md.append(f"## {year}")
@@ -157,12 +190,9 @@ for year, items in df.groupby("year", sort=False):
     md.append("")
 mds = "\n".join(md)
 
-# +
-# Uncomment to preview in a notebook
-# Markdown(mds)
-# -
+# Write to a markdown file
+with open(md_loc, "w", encoding='utf-8') as f:
+    f.write(mds)
+print(f"    Saved to {md_loc}")
 
-# This will only work if this is run as a script
-path_out = Path(__file__).parent.parent / "_static/publications.txt"
-path_out.write_text(mds)
-print(f"Finished updating ORCID entries at: {path_out}")
+print("Finished!")

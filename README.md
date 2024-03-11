@@ -10,7 +10,7 @@ Customized automatic creation of publication record using ORCID data.
 ```bash
 pip install -r requirements.txt
 ```
-4. Specify the ORCIDID variable in the `orcid_record.py` file.
+4. Specify the `orcid_id variable` in the `orcid_record.py` file.
 5. Run the script:
 ```bash
 python orcid_record.py
