@@ -13,7 +13,7 @@ pip install -r requirements.txt
 4. Specify the `orcid_id variable` in the `orcid_record.py` file.
 5. Run the script:
 ```bash
-python orcid_record.py
+python orcid.py
 ```
 
 # Output
