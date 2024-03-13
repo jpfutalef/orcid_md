@@ -47,7 +47,7 @@ def process_doi_list(doi_list, database_loc="./publication_record.xlsx"):
             doi_metadata = get_doi_json(doi)
             data[doi] = process_doi_metadata(doi, doi_metadata)
 
-    return pd.DataFrame.from_dict(data).T
+    return pd.DataFrame.from_dict(data).T.sort_values("year", ascending=False)
 
 
 # A function to fetch metadata for a given DOI
@@ -95,11 +95,11 @@ def process_doi_metadata(doi, meta):
     """
     # Extract the data
     try:
-        doi_url = meta["URL"]
         title = meta["title"]
         references_count = meta["references-count"]
         year = meta["issued"]["date-parts"][0][0]
         url = meta["URL"]
+        doc_type = meta["type"]
 
         # Create authors list with links to their ORCIDs
         authors = meta["author"]
@@ -128,7 +128,8 @@ def process_doi_metadata(doi, meta):
             "citation_count": references_count,
             "url_doi": url_doi,
             "url": url,
-            "reference": reference
+            "reference": reference,
+            "type": doc_type,
         }
 
     except KeyError as e:
