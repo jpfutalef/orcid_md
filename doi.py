@@ -25,10 +25,10 @@ def process_doi_list(doi_list, database_loc="./publication_record.xlsx"):
     try:
         database = pd.read_excel(database_loc, index_col=0)
         data = database.to_dict(orient="index")
-        print(f"    FOUND! {database_loc} will be used to check if DOI is already in the list.")
+        print(f"    {database_loc} was FOUND and will be used to check if DOI is already in the database.")
 
     except FileNotFoundError:
-        print(f"    NOT FOUND. New file will be created at {database_loc}")
+        print(f"    {database_loc} was NOT FOUND and will be created.")
         data = {}
 
     with Progress() as progress:
