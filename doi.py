@@ -45,6 +45,10 @@ def process_doi_list(doi_list, database_loc="./publication_record.xlsx"):
 
             # Fetch the metadata
             doi_metadata = get_doi_json(doi)
+            if doi_metadata is None:
+                print(f"    No metadata found for DOI: {doi}")
+                continue
+
             data[doi] = process_doi_metadata(doi, doi_metadata)
 
     return pd.DataFrame.from_dict(data).T.sort_values("year", ascending=False)
@@ -95,28 +99,32 @@ def process_doi_metadata(doi, meta):
     """
     # Extract the data
     try:
-        title = meta["title"]
-        references_count = meta["references-count"]
+        title = meta.get("title", "NO_DATA")
+        references_count = meta.get("reference-count", "NO_DATA")
         year = meta["issued"]["date-parts"][0][0]
-        url = meta["URL"]
-        doc_type = meta["type"]
+        url = meta.get("URL", "NO_DATA")
+        url_doi = url
+        doc_type = meta.get("type", "NO_DATA")
+        journal = meta.get("publisher", "NO_DATA")
 
         # Create authors list with links to their ORCIDs
-        authors = meta["author"]
-        autht = []
-        for author in authors:
-            name = f"{author['family']}, {author['given'][0]}."
-            if "holdgraf" in author["family"].lower():
-                name = f"**{name}**"
-            if "ORCID" in author:
-                autht.append(f"[{name}]({author['ORCID']})")
-            else:
-                autht.append(name)
-        autht = "; ".join(autht)
+        authors = meta.get("author", "NO_DATA")
+        autht = "NO_DATA"
+        if authors != "NO_DATA":
+            autht = []
+            for author in authors:
+                name = f"{author['family']}, {author['given'][0]}."
+                if "holdgraf" in author["family"].lower():
+                    name = f"**{name}**"
+                if "ORCID" in author:
+                    autht.append(f"[{name}]({author['ORCID']})")
+                else:
+                    autht.append(name)
+            autht = "; ".join(autht)
 
-        journal = meta["publisher"]
+        if "//" in url_doi:
+            url_doi = url_doi.split("//", 1)[-1]
 
-        url_doi = url.split("//", 1)[-1]
         reference = f"{autht} ({year}). **{title}**. {journal}. [{url_doi}]({url})"
 
         # Setup this entry
