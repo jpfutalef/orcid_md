@@ -9,10 +9,10 @@ def merge_doi_lists(*args):
     Merge multiple lists of DOIs into one list.
     :param args: doi_list1, doi_list2, ...
     """
-    out = []
+    doi_list = set()
     for arg in args:
-        out.extend(arg)
-    return out
+        doi_list.update(arg)
+    return list(doi_list)
 
 
 def process_doi_list(doi_list, database_loc="./publication_record.xlsx"):

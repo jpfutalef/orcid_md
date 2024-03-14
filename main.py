@@ -14,7 +14,7 @@ from importlib import reload
 
 # %% Specify IDs
 orcid_id = "0000-0002-7108-637X"
-scopus_id = "7103080737"
+scopus_id = "7005289082"
 record_name = "EnricoZio"
 
 xlsx_loc = f"./{record_name}.xlsx"
@@ -29,15 +29,14 @@ orcid_doi_list = orcid.extract_doi(orcid_record)
 print(f"    Retrieved {len(orcid_doi_list)} DOIs from ORCID.")
 
 # %% Retrieve Scopus data
-# TODO fix API AUTH
 print("Retrieving Scopus entries from API...")
-scopus_doi_list = scopus.query_api(scopus_id, save_to=f"./Scopus-{record_name}.json")
-with open(f"./Scopus-{record_name}.pkl", "wb") as f:
-    pickle.dump(scopus_doi_list, f)
+record = scopus.query_api(scopus_id, save_to=f"./Scopus-{record_name}.json")
+scopus_doi_list = scopus.extract_doi(record)
 
 print(f"    Retrieved {len(scopus_doi_list)} DOIs from Scopus.")
 
 # %% Combine the lists
+reload(doi)
 doi_list = doi.merge_doi_lists(orcid_doi_list, scopus_doi_list)
 
 # %% Fetch metadata for each DOI
